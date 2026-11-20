@@ -277,6 +277,8 @@
   .spin-won{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:clamp(2.2rem,6vw,3rem);line-height:1;text-transform:uppercase;margin:0 0 8px;color:var(--navy)}
   @media (prefers-color-scheme: dark){ .spin-won{color:var(--yellow)} }
   .spin-how{margin:0 0 12px;font-size:1.05rem}
+  .spin-date{margin:0 0 10px;font-weight:700;font-size:1.05rem;color:var(--ink)}
+  .spin-btn.is-locked,.wheel-hub.is-locked{cursor:not-allowed}
   .spin-stores{margin:0;border-top:1px solid var(--line);padding-top:12px;color:var(--ink-2);font-size:.98rem}
   .spin-stores b{color:var(--ink)}
   .spin-stores a{font-weight:700;text-decoration:none;color:var(--navy)}
@@ -349,7 +351,7 @@
     <div class="wrap">
       <span class="badge-only">Spin &amp; Save</span>
       <h2>Spin the Wheel — <span class="accent" style="color:var(--yellow)">Win $5–$25 Off</span></h2>
-      <p class="spin-lede">Every spin wins. Tap the wheel or the SPIN button, and whatever it lands on comes off your purchase. Screenshot your win and show it at either store — we'll take it off at the register.</p>
+      <p class="spin-lede">Every spin wins. Tap the wheel or the SPIN button, and whatever it lands on comes off your purchase. Screenshot your win and show it at either store — we'll take it off at the register. One spin per day.</p>
       <div class="spin-grid">
         <div class="wheel-stage" id="wheelStage" title="Tap to spin">
           <div class="wheel-pointer" aria-hidden="true"></div>
@@ -362,6 +364,7 @@
           <div class="spin-result" id="spinResult" aria-live="polite" hidden>
             <p class="biz">One Stop Appliance and More LLC</p>
             <p class="spin-won" id="spinWon">You won $5 OFF!</p>
+            <p class="spin-date" id="spinDate"></p>
             <p class="spin-how" id="spinHow">Screenshot this and show it at either store — we'll take $5 off your purchase.</p>
             <p class="spin-stores"><b>Middleburg</b> · 2581 Blanding Blvd. · <a href="tel:+19042543189">904-254-3189</a><br/><b>Starke</b> · 430 S. Temple · <a href="tel:+19045244645">904-524-4645</a></p>
           </div>
@@ -1260,22 +1263,63 @@
     var result = document.getElementById('spinResult');
     var won = document.getElementById('spinWon');
     var how = document.getElementById('spinHow');
+    var dateEl = document.getElementById('spinDate');
     var rotation = 0, spinning = false;
     var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function finish(idx){
-      spinning = false;
-      btn.disabled = false;
-      hub.disabled = false;
-      var amt = prizes[idx].amt;
+    // One spin per calendar day (local date), remembered on this device/browser.
+    var LS_KEY = 'osaSpinSave';
+    var memRecord = null;
+    function todayKey(d){
+      d = d || new Date();
+      var m = d.getMonth() + 1, day = d.getDate();
+      return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+    }
+    function dateLabel(d){
+      return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    function loadRecord(){
+      try {
+        var raw = window.localStorage.getItem(LS_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return memRecord;
+    }
+    function saveRecord(rec){
+      memRecord = rec;
+      try { window.localStorage.setItem(LS_KEY, JSON.stringify(rec)); } catch (e) {}
+    }
+    function spunToday(){
+      var rec = loadRecord();
+      return (rec && rec.date === todayKey() && rec.amt) ? rec : null;
+    }
+    function showResult(amt, label){
       won.textContent = 'You won $' + amt + ' OFF!';
       how.textContent = 'Screenshot this and show it at either store — we\'ll take $' + amt + ' off your purchase.';
-      hint.hidden = true;
+      if (dateEl) dateEl.textContent = 'Won ' + label;
       result.hidden = false;
-      btn.textContent = 'Spin Again';
+    }
+    function lockWheel(){
+      btn.disabled = true;
+      hub.disabled = true;
+      btn.classList.add('is-locked');
+      hub.classList.add('is-locked');
+      btn.textContent = 'Come Back Tomorrow';
+      hint.hidden = false;
+      hint.textContent = 'You\'ve already spun today — come back tomorrow to spin again!';
+    }
+
+    function finish(idx){
+      spinning = false;
+      var amt = prizes[idx].amt;
+      var now = new Date();
+      var label = dateLabel(now);
+      saveRecord({ date: todayKey(now), amt: amt, label: label });
+      showResult(amt, label);
+      lockWheel();
     }
     function spin(){
-      if (spinning) return;
+      if (spinning || spunToday()) return;
       spinning = true;
       btn.disabled = true;
       hub.disabled = true;
@@ -1306,6 +1350,12 @@
       if (e.target === btn) return;
       spin();
     });
+    // Already spun earlier today? Show the saved win again and keep the wheel locked.
+    var prior = spunToday();
+    if (prior) {
+      showResult(prior.amt, prior.label || dateLabel(new Date()));
+      lockWheel();
+    }
   })();
 </script>
 </body>
