@@ -251,6 +251,36 @@
   .review-band h3{font-size:1.7rem;margin:0;text-transform:uppercase}
   .review-band p{margin:2px 0 0;font-weight:500}
   .btn-dark{background:#12233a;color:#fff}
+
+  /* ---------- spin to win wheel ---------- */
+  .spin-section{background:var(--navy);color:#fff;padding:52px 0}
+  .spin-section h2{color:#fff}
+  .spin-section .badge-only{margin-bottom:12px}
+  .spin-lede{color:#d3e2f1;max-width:62ch;margin:0;font-size:1.05rem}
+  .spin-grid{display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:center;margin-top:30px}
+  @media (max-width:820px){ .spin-grid{grid-template-columns:1fr;justify-items:center;gap:26px} .spin-side{width:100%;max-width:460px} }
+  .wheel-stage{position:relative;width:min(80vw,340px);aspect-ratio:1/1;flex:none}
+  .wheel-svg{width:100%;height:100%;display:block;border-radius:50%;box-shadow:0 14px 34px rgba(0,0,0,.4);will-change:transform}
+  .wheel-label{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:21px;letter-spacing:.03em}
+  .wheel-pointer{position:absolute;top:-8px;left:50%;transform:translateX(-50%);z-index:3;width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-top:28px solid var(--yellow);filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+  .wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;width:88px;height:88px;border-radius:50%;border:4px solid var(--yellow);background:var(--navy-deep);color:#fff;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:1.45rem;letter-spacing:.05em;cursor:pointer;padding:0;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+  .wheel-hub:hover{background:var(--navy-2)}
+  .wheel-hub:disabled{opacity:.75;cursor:wait}
+  .spin-side{display:flex;flex-direction:column;gap:16px;align-items:flex-start}
+  @media (max-width:820px){ .spin-side{align-items:stretch} }
+  .spin-btn{font-size:1.15rem;padding:14px 30px;cursor:pointer;border:none;font-family:inherit}
+  .spin-btn:disabled{opacity:.65;cursor:wait}
+  .spin-hint{color:#bcd0e6;margin:0}
+  .spin-result{background:var(--surface);color:var(--ink);border:3px dashed var(--yellow-dark);border-radius:var(--radius);padding:22px 24px;width:100%}
+  @media (prefers-color-scheme: dark){ .spin-result{border-color:var(--yellow)} }
+  .spin-result .biz{font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:.8rem;color:var(--ink-2);margin:0 0 4px}
+  .spin-won{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:clamp(2.2rem,6vw,3rem);line-height:1;text-transform:uppercase;margin:0 0 8px;color:var(--navy)}
+  @media (prefers-color-scheme: dark){ .spin-won{color:var(--yellow)} }
+  .spin-how{margin:0 0 12px;font-size:1.05rem}
+  .spin-stores{margin:0;border-top:1px solid var(--line);padding-top:12px;color:var(--ink-2);font-size:.98rem}
+  .spin-stores b{color:var(--ink)}
+  .spin-stores a{font-weight:700;text-decoration:none;color:var(--navy)}
+  @media (prefers-color-scheme: dark){ .spin-stores a{color:var(--yellow)} }
 </style>
 </head>
 <body>
@@ -260,6 +290,7 @@
     <a class="brand" href="#top">One Stop <span>Appliance</span> and More LLC<small>Making It Happen Since 2009</small></a>
     <button class="burger" id="burger" aria-expanded="false" aria-controls="mainnav">Menu</button>
     <nav class="main" id="mainnav" aria-label="Main">
+      <a href="#spin">Spin &amp; Save</a>
       <a href="#prices">Prices</a>
       <a href="#in-stock">In Stock</a>
       <a href="#delivery">Delivery</a>
@@ -312,6 +343,32 @@
       </div>
     </div>
   </div>
+
+  <!-- SPIN TO WIN -->
+  <section id="spin" class="spin-section" aria-label="Spin to win a discount">
+    <div class="wrap">
+      <span class="badge-only">Spin &amp; Save</span>
+      <h2>Spin the Wheel — <span class="accent" style="color:var(--yellow)">Win $5–$25 Off</span></h2>
+      <p class="spin-lede">Every spin wins. Tap the wheel or the SPIN button, and whatever it lands on comes off your purchase. Screenshot your win and show it at either store — we'll take it off at the register.</p>
+      <div class="spin-grid">
+        <div class="wheel-stage" id="wheelStage" title="Tap to spin">
+          <div class="wheel-pointer" aria-hidden="true"></div>
+          <svg class="wheel-svg" id="wheelSvg" viewBox="0 0 320 320" role="img" aria-label="Prize wheel with $5, $10, $15, and $25 off segments"></svg>
+          <button class="wheel-hub" id="wheelHub" type="button" aria-label="Spin the wheel">SPIN</button>
+        </div>
+        <div class="spin-side">
+          <button class="btn btn-yellow spin-btn" id="spinBtn" type="button">Spin the Wheel</button>
+          <p class="spin-hint" id="spinHint">Your discount appears here after you spin.</p>
+          <div class="spin-result" id="spinResult" aria-live="polite" hidden>
+            <p class="biz">One Stop Appliance and More LLC</p>
+            <p class="spin-won" id="spinWon">You won $5 OFF!</p>
+            <p class="spin-how" id="spinHow">Screenshot this and show it at either store — we'll take $5 off your purchase.</p>
+            <p class="spin-stores"><b>Middleburg</b> · 2581 Blanding Blvd. · <a href="tel:+19042543189">904-254-3189</a><br/><b>Starke</b> · 430 S. Temple · <a href="tel:+19045244645">904-524-4645</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- PRICES -->
   <section id="prices">
@@ -1142,6 +1199,113 @@
     type.addEventListener('change', calc);
     miles.addEventListener('input', calc);
     calc();
+  })();
+
+  // Spin to Win wheel: 8 segments — $5 x3, $10 x2, $15 x2, $25 x1
+  (function(){
+    var svg = document.getElementById('wheelSvg');
+    if (!svg) return;
+    var NS = 'http://www.w3.org/2000/svg';
+    var prizes = [
+      { amt: 5,  bg: '#12365c', fg: '#ffffff' },
+      { amt: 10, bg: '#ffc81a', fg: '#12233a' },
+      { amt: 5,  bg: '#12365c', fg: '#ffffff' },
+      { amt: 15, bg: '#2a5a8c', fg: '#ffffff' },
+      { amt: 25, bg: '#b3261e', fg: '#ffffff' },
+      { amt: 5,  bg: '#12365c', fg: '#ffffff' },
+      { amt: 10, bg: '#ffc81a', fg: '#12233a' },
+      { amt: 15, bg: '#2a5a8c', fg: '#ffffff' }
+    ];
+    var cx = 160, cy = 160, r = 154;
+    function pt(angleDeg, rad){
+      var a = angleDeg * Math.PI / 180;
+      return [cx + rad * Math.sin(a), cy - rad * Math.cos(a)];
+    }
+    var rim = document.createElementNS(NS, 'circle');
+    rim.setAttribute('cx', cx); rim.setAttribute('cy', cy); rim.setAttribute('r', 159);
+    rim.setAttribute('fill', '#0a1f36');
+    svg.appendChild(rim);
+    prizes.forEach(function(p, i){
+      var a0 = i * 45, a1 = a0 + 45;
+      var p0 = pt(a0, r), p1 = pt(a1, r);
+      var path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', 'M ' + cx + ' ' + cy + ' L ' + p0[0].toFixed(2) + ' ' + p0[1].toFixed(2) +
+        ' A ' + r + ' ' + r + ' 0 0 1 ' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2) + ' Z');
+      path.setAttribute('fill', p.bg);
+      path.setAttribute('stroke', '#0a1f36');
+      path.setAttribute('stroke-width', '2');
+      svg.appendChild(path);
+      var mid = a0 + 22.5;
+      var lp = pt(mid, 103);
+      var text = document.createElementNS(NS, 'text');
+      text.setAttribute('x', lp[0].toFixed(2));
+      text.setAttribute('y', lp[1].toFixed(2));
+      text.setAttribute('fill', p.fg);
+      text.setAttribute('class', 'wheel-label');
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('dominant-baseline', 'central');
+      text.setAttribute('transform', 'rotate(' + mid + ' ' + lp[0].toFixed(2) + ' ' + lp[1].toFixed(2) + ')');
+      text.textContent = '$' + p.amt + ' OFF';
+      svg.appendChild(text);
+    });
+    var hubRing = document.createElementNS(NS, 'circle');
+    hubRing.setAttribute('cx', cx); hubRing.setAttribute('cy', cy); hubRing.setAttribute('r', 47);
+    hubRing.setAttribute('fill', '#0a1f36');
+    svg.appendChild(hubRing);
+
+    var stage = document.getElementById('wheelStage');
+    var hub = document.getElementById('wheelHub');
+    var btn = document.getElementById('spinBtn');
+    var hint = document.getElementById('spinHint');
+    var result = document.getElementById('spinResult');
+    var won = document.getElementById('spinWon');
+    var how = document.getElementById('spinHow');
+    var rotation = 0, spinning = false;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function finish(idx){
+      spinning = false;
+      btn.disabled = false;
+      hub.disabled = false;
+      var amt = prizes[idx].amt;
+      won.textContent = 'You won $' + amt + ' OFF!';
+      how.textContent = 'Screenshot this and show it at either store — we\'ll take $' + amt + ' off your purchase.';
+      hint.hidden = true;
+      result.hidden = false;
+      btn.textContent = 'Spin Again';
+    }
+    function spin(){
+      if (spinning) return;
+      spinning = true;
+      btn.disabled = true;
+      hub.disabled = true;
+      result.hidden = true;
+      hint.hidden = false;
+      hint.textContent = 'Spinning… good luck!';
+      var idx = Math.floor(Math.random() * prizes.length);
+      var jitter = Math.random() * 24 - 12; // land inside the segment, not on an edge
+      var targetMod = ((360 - (idx * 45 + 22.5) - jitter) % 360 + 360) % 360;
+      var currentMod = ((rotation % 360) + 360) % 360;
+      var delta = ((targetMod - currentMod) + 360) % 360;
+      rotation += 360 * 5 + delta;
+      var dur = reduced ? 0.7 : 4.6;
+      svg.style.transition = 'transform ' + dur + 's cubic-bezier(.12,.8,.08,1)';
+      svg.style.transform = 'rotate(' + rotation + 'deg)';
+      var done = false;
+      var complete = function(){
+        if (done) return;
+        done = true;
+        svg.removeEventListener('transitionend', complete);
+        finish(idx);
+      };
+      svg.addEventListener('transitionend', complete);
+      setTimeout(complete, dur * 1000 + 150);
+    }
+    btn.addEventListener('click', spin);
+    stage.addEventListener('click', function(e){
+      if (e.target === btn) return;
+      spin();
+    });
   })();
 </script>
 </body>
