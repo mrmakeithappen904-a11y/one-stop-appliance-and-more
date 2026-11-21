@@ -283,6 +283,26 @@
   .spin-stores b{color:var(--ink)}
   .spin-stores a{font-weight:700;text-decoration:none;color:var(--navy)}
   @media (prefers-color-scheme: dark){ .spin-stores a{color:var(--yellow)} }
+
+  /* ---------- photo zoom viewer ---------- */
+  .item-media img.main,.gallery img{cursor:zoom-in}
+  .gallery figure{position:relative}
+  .zoom-chip{position:absolute;right:10px;bottom:10px;z-index:2;background:rgba(10,31,54,.85);color:#fff;font-size:.8rem;font-weight:700;letter-spacing:.03em;padding:5px 11px;border-radius:999px;pointer-events:none}
+  .gallery .zoom-chip{top:10px;bottom:auto}
+  .lightbox{position:fixed;inset:0;z-index:200;background:rgba(6,16,28,.97);display:none;flex-direction:column}
+  .lightbox.open{display:flex}
+  .lb-top{display:flex;align-items:center;gap:12px;padding:10px 14px;color:#fff}
+  .lb-caption{flex:1;font-weight:600;font-size:.98rem;margin:0;min-width:0}
+  .lb-count{color:#bcd0e6;font-size:.9rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .lb-stage{flex:1;position:relative;overflow:hidden;touch-action:none;display:flex;align-items:center;justify-content:center;min-height:0}
+  .lb-stage img{max-width:100%;max-height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-select:none;will-change:transform}
+  .lb-bar{display:flex;justify-content:center;gap:8px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));flex-wrap:wrap}
+  .lb-btn{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;font:inherit;font-weight:700;padding:10px 16px;cursor:pointer;min-width:48px}
+  .lb-btn:hover{background:rgba(255,255,255,.24)}
+  .lb-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;font-size:1.5rem;line-height:1;padding:12px 14px}
+  .lb-prev{left:10px}
+  .lb-next{right:10px}
+  .lb-hint{color:#bcd0e6;text-align:center;font-size:.88rem;margin:0;padding:0 14px 4px}
 </style>
 </head>
 <body>
@@ -427,7 +447,7 @@
   <section id="in-stock" style="padding-top:8px">
     <div class="wrap">
       <h2>In Stock <span class="accent">Now</span></h2>
-      <p class="lede">Individual appliances on the floor right now, photographed in our stores. Every one is professionally serviced and covered by our standard One Year Limited Warranty — 30 days parts, one year labor. Stock moves fast, so call to check availability before you make the trip.</p>
+      <p class="lede">Individual appliances on the floor right now, photographed in our stores. <b>Tap any photo to see the whole appliance full-size — you can zoom in and out to check the details.</b> Every one is professionally serviced and covered by our standard One Year Limited Warranty — 30 days parts, one year labor. Stock moves fast, so call to check availability before you make the trip.</p>
       <h3 class="group-head">Washers</h3>
       <div class="catalog-grid">
 
@@ -1237,6 +1257,26 @@
   </div>
 </footer>
 
+<!-- PHOTO ZOOM VIEWER -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer — see the whole photo and zoom in or out">
+  <div class="lb-top">
+    <p class="lb-caption" id="lbCaption"></p>
+    <span class="lb-count" id="lbCount"></span>
+    <button class="lb-btn" id="lbClose" type="button">✕ Close</button>
+  </div>
+  <div class="lb-stage" id="lbStage">
+    <button class="lb-btn lb-nav lb-prev" id="lbPrev" type="button" aria-label="Previous photo">‹</button>
+    <img id="lbImg" alt="" draggable="false" />
+    <button class="lb-btn lb-nav lb-next" id="lbNext" type="button" aria-label="Next photo">›</button>
+  </div>
+  <p class="lb-hint">Pinch, scroll, or use the buttons to zoom · drag to move around · double-tap to zoom in</p>
+  <div class="lb-bar">
+    <button class="lb-btn" id="lbZoomOut" type="button" aria-label="Zoom out">− Zoom Out</button>
+    <button class="lb-btn" id="lbReset" type="button">Fit Whole Photo</button>
+    <button class="lb-btn" id="lbZoomIn" type="button" aria-label="Zoom in">+ Zoom In</button>
+  </div>
+</div>
+
 <script>
   // Mobile nav
   var burger = document.getElementById('burger');
@@ -1470,6 +1510,169 @@
       showResult(prior.amt, prior.label || dateLabel(new Date()));
       lockWheel();
     }
+  })();
+
+  // Photo zoom viewer: tap a photo to see the WHOLE picture (nothing cropped),
+  // then zoom in/out with buttons, pinch, scroll wheel, or double-tap; drag to pan.
+  (function(){
+    var lb = document.getElementById('lightbox');
+    if (!lb) return;
+    var img = document.getElementById('lbImg');
+    var stage = document.getElementById('lbStage');
+    var caption = document.getElementById('lbCaption');
+    var count = document.getElementById('lbCount');
+    var prevBtn = document.getElementById('lbPrev');
+    var nextBtn = document.getElementById('lbNext');
+    var closeBtn = document.getElementById('lbClose');
+    var photos = [], idx = 0, scale = 1, tx = 0, ty = 0, lastFocus = null;
+
+    function apply(){
+      img.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+      img.style.cursor = scale > 1 ? 'grab' : 'zoom-in';
+    }
+    function resetZoom(){ scale = 1; tx = 0; ty = 0; apply(); }
+    function setZoom(nz){
+      scale = Math.min(4, Math.max(1, nz));
+      if (scale === 1) { tx = 0; ty = 0; }
+      apply();
+    }
+    function show(){
+      var p = photos[idx];
+      img.src = p.src;
+      img.alt = p.alt || '';
+      caption.textContent = p.alt || '';
+      count.textContent = photos.length > 1 ? (idx + 1) + ' of ' + photos.length : '';
+      prevBtn.style.display = photos.length > 1 ? '' : 'none';
+      nextBtn.style.display = photos.length > 1 ? '' : 'none';
+      resetZoom();
+    }
+    function open(list, start, fromEl){
+      photos = list; idx = start || 0;
+      lastFocus = fromEl || document.activeElement;
+      show();
+      lb.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      closeBtn.focus();
+    }
+    function close(){
+      lb.classList.remove('open');
+      document.body.style.overflow = '';
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    function step(d){
+      if (photos.length < 2) return;
+      idx = (idx + d + photos.length) % photos.length;
+      show();
+    }
+
+    document.getElementById('lbZoomIn').addEventListener('click', function(){ setZoom(scale * 1.5); });
+    document.getElementById('lbZoomOut').addEventListener('click', function(){ setZoom(scale / 1.5); });
+    document.getElementById('lbReset').addEventListener('click', resetZoom);
+    prevBtn.addEventListener('click', function(){ step(-1); });
+    nextBtn.addEventListener('click', function(){ step(1); });
+    closeBtn.addEventListener('click', close);
+    document.addEventListener('keydown', function(e){
+      if (!lb.classList.contains('open')) return;
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowLeft') step(-1);
+      else if (e.key === 'ArrowRight') step(1);
+      else if (e.key === '+' || e.key === '=') setZoom(scale * 1.25);
+      else if (e.key === '-') setZoom(scale / 1.25);
+    });
+
+    // Scroll wheel zooms (desktop)
+    stage.addEventListener('wheel', function(e){
+      e.preventDefault();
+      setZoom(scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
+    }, { passive: false });
+
+    // Double-click / double-tap toggles zoom
+    img.addEventListener('dblclick', function(){ setZoom(scale > 1 ? 1 : 2.5); });
+
+    // Drag to pan when zoomed; two-finger pinch to zoom
+    var pointers = new Map();
+    var dragStart = null, pinchStart = null;
+    stage.addEventListener('pointerdown', function(e){
+      if (e.target.closest('button')) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+      if (pointers.size === 1) {
+        dragStart = { x: e.clientX, y: e.clientY, tx: tx, ty: ty };
+      } else if (pointers.size === 2) {
+        var pts = Array.from(pointers.values());
+        pinchStart = { d: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y), scale: scale };
+        dragStart = null;
+      }
+    });
+    stage.addEventListener('pointermove', function(e){
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2 && pinchStart) {
+        var pts = Array.from(pointers.values());
+        var d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        if (pinchStart.d > 0) setZoom(pinchStart.scale * d / pinchStart.d);
+      } else if (pointers.size === 1 && dragStart && scale > 1) {
+        tx = dragStart.tx + (e.clientX - dragStart.x);
+        ty = dragStart.ty + (e.clientY - dragStart.y);
+        apply();
+      }
+    });
+    function endPointer(e){
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinchStart = null;
+      if (pointers.size === 0) dragStart = null;
+      if (pointers.size === 1) {
+        var p = Array.from(pointers.values())[0];
+        dragStart = { x: p.x, y: p.y, tx: tx, ty: ty };
+      }
+    }
+    stage.addEventListener('pointerup', endPointer);
+    stage.addEventListener('pointercancel', endPointer);
+
+    // "Tap photo to zoom" chip on every appliance photo
+    document.querySelectorAll('.item-media, .gallery figure').forEach(function(el){
+      var chip = document.createElement('span');
+      chip.className = 'zoom-chip';
+      chip.textContent = 'Tap photo to zoom';
+      chip.setAttribute('aria-hidden', 'true');
+      el.appendChild(chip);
+    });
+
+    // Open the viewer from a catalog card's main photo, with all of that item's photos
+    function makeOpenable(el, getList){
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('role', 'button');
+      el.setAttribute('aria-label', 'See the full-size photo and zoom: ' + (el.getAttribute('alt') || 'appliance photo'));
+      function go(){
+        var r = getList();
+        open(r.list, r.start, el);
+      }
+      el.addEventListener('click', go);
+      el.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+      });
+    }
+    document.querySelectorAll('.item-media img.main').forEach(function(mainImg){
+      makeOpenable(mainImg, function(){
+        var list = [];
+        var card = mainImg.closest('.item-card');
+        var group = card ? card.querySelector('.thumbs') : null;
+        if (group) {
+          group.querySelectorAll('button[data-src]').forEach(function(b){
+            list.push({ src: b.getAttribute('data-src'), alt: b.getAttribute('data-alt') || '' });
+          });
+        }
+        if (!list.length) list.push({ src: mainImg.getAttribute('src'), alt: mainImg.getAttribute('alt') || '' });
+        var cur = mainImg.getAttribute('src'), start = 0;
+        list.forEach(function(p, i){ if (p.src === cur) start = i; });
+        return { list: list, start: start };
+      });
+    });
+    document.querySelectorAll('.gallery img').forEach(function(g){
+      makeOpenable(g, function(){
+        return { list: [{ src: g.getAttribute('src'), alt: g.getAttribute('alt') || '' }], start: 0 };
+      });
+    });
   })();
 </script>
 </body>
